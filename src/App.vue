@@ -1,5 +1,9 @@
 <template>
   <div id="app">
+    <div>
+      Ouvindo o canal:
+      <input type="text" v-model="channel" @input="listen()" />
+    </div>
     <img alt="Vue logo" src="./assets/logo.png" />
     <div class="input">
       Mensagem:
@@ -23,21 +27,28 @@ export default {
   },
   data: () => ({
     list: [],
-    input: ""
+    input: "",
+    channel: ""
   }),
   created() {
-    this.listen();
+    this.randomChannel();
   },
   methods: {
     async request() {
       try {
         const result = await axios.get(
-          `http://localhost/test-broadcast?message=${this.input}`
+          `http://localhost/test-broadcast?message=${this.input}&channel=${this.channel}`
         );
         this.input = "";
       } catch (err) {
         console.error(err.data);
       }
+    },
+    randomChannel() {
+      this.channel = Math.random()
+        .toString(36)
+        .substring(6);
+      this.listen();
     },
     listen() {
       window.io = require("socket.io-client");
@@ -47,7 +58,10 @@ export default {
         host: window.location.hostname + ":6001"
       });
 
-      window.Echo.channel("laravel_database_test-event").listen(
+      window.Echo.leave("laravel_database_test-" + this.channel);
+      this.list = [];
+
+      window.Echo.channel("laravel_database_test-" + this.channel).listen(
         ".test.event",
         e => {
           this.list.push(e.data);
